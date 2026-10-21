@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.iqkv.docintelligence.catalogprocessingworker;
+package com.iqkv.docintelligence.mastervenueworker;
 
 import java.util.TimeZone;
 
@@ -32,10 +32,10 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @SpringBootApplication
 @ConfigurationPropertiesScan
 @EnableScheduling
-public class CatalogProcessingWorkerApplication {
+public class MasterVenueWorkerApplication {
 
   public static void main(String[] args) {
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
-    SpringApplication.run(CatalogProcessingWorkerApplication.class, args);
+    SpringApplication.run(MasterVenueWorkerApplication.class, args);
   }
 }

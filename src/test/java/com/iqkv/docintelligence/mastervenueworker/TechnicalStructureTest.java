@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.iqkv.docintelligence.catalogprocessingworker;
+package com.iqkv.docintelligence.mastervenueworker;
 
 import static com.tngtech.archunit.base.DescribedPredicate.alwaysTrue;
 import static com.tngtech.archunit.core.domain.JavaClass.Predicates.belongToAnyOf;
@@ -25,12 +25,12 @@ import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
 
-@AnalyzeClasses(packagesOf = CatalogProcessingWorkerApplication.class, importOptions = DoNotIncludeTests.class)
+@AnalyzeClasses(packagesOf = MasterVenueWorkerApplication.class, importOptions = DoNotIncludeTests.class)
 class TechnicalStructureTest {
 
   // prettier-ignore
   @ArchTest
   static final ArchRule respectsTechnicalArchitectureLayers = onionArchitecture()
       .withOptionalLayers(true)
-      .ignoreDependency(belongToAnyOf(CatalogProcessingWorkerApplication.class), alwaysTrue());
+      .ignoreDependency(belongToAnyOf(MasterVenueWorkerApplication.class), alwaysTrue());
 }

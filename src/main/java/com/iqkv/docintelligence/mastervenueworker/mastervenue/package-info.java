@@ -15,7 +15,7 @@
  */
 
 /**
- * Application root package for the Catalog Processing Worker.
+ * The master venue bounded context — platform-owned reference data in the {@code public} schema,
+ * accessed by the worker over the database it shares with {@code docintelligence-catalog-service}.
  */
-
-package com.iqkv.docintelligence.catalogprocessingworker;
+package com.iqkv.docintelligence.mastervenueworker.mastervenue;

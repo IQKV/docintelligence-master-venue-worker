@@ -14,8 +14,17 @@
  * limitations under the License.
  */
 
-/**
- * Shared kernel: cross-cutting utilities, common exceptions, and domain primitives
- * reused across bounded contexts within this service.
- */
-package com.iqkv.docintelligence.catalogprocessingworker.shared;
+package com.iqkv.docintelligence.mastervenueworker;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
+
+@SpringBootTest
+@ActiveProfiles("test")
+class MasterVenueWorkerApplicationTests {
+
+  @Test
+  void contextLoads() {
+  }
+}

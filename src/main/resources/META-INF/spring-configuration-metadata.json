@@ -14,8 +14,8 @@
         },
         {
             "name": "iqkv.messaging.rabbitmq",
-            "type": "com.iqkv.docintelligence.catalogprocessingworker.infrastructure.config.MessagingConfigurationProperties",
-            "sourceType": "com.iqkv.docintelligence.catalogprocessingworker.infrastructure.config.MessagingConfigurationProperties",
+            "type": "com.iqkv.docintelligence.mastervenueworker.infrastructure.config.MessagingConfigurationProperties",
+            "sourceType": "com.iqkv.docintelligence.mastervenueworker.infrastructure.config.MessagingConfigurationProperties",
             "description": "RabbitMQ messaging toggles. 'enabled' drives @ConditionalOnProperty on the messaging configuration classes."
         },
         {
@@ -34,14 +34,14 @@
         },
         {
             "name": "iqkv.objectstorage",
-            "type": "com.iqkv.docintelligence.catalogprocessingworker.infrastructure.config.ObjectStorageConfigurationProperties",
-            "sourceType": "com.iqkv.docintelligence.catalogprocessingworker.infrastructure.config.ObjectStorageConfigurationProperties",
+            "type": "com.iqkv.docintelligence.mastervenueworker.infrastructure.config.ObjectStorageConfigurationProperties",
+            "sourceType": "com.iqkv.docintelligence.mastervenueworker.infrastructure.config.ObjectStorageConfigurationProperties",
             "description": "S3-compatible object storage configuration. Shares the catalog-assets bucket with docintelligence-catalog-service; supports MinIO (SIT/UAT) and AWS S3 (production)."
         },
         {
             "name": "iqkv.objectstorage.upload",
-            "type": "com.iqkv.docintelligence.catalogprocessingworker.infrastructure.config.ObjectStorageConfigurationProperties$Upload",
-            "sourceType": "com.iqkv.docintelligence.catalogprocessingworker.infrastructure.config.ObjectStorageConfigurationProperties",
+            "type": "com.iqkv.docintelligence.mastervenueworker.infrastructure.config.ObjectStorageConfigurationProperties$Upload",
+            "sourceType": "com.iqkv.docintelligence.mastervenueworker.infrastructure.config.ObjectStorageConfigurationProperties",
             "description": "Upload policy constraints applied before an object is sent to storage."
         }
     ],

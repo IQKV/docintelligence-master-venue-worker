@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package com.iqkv.docintelligence.catalogprocessingworker.infrastructure.config;
+package com.iqkv.docintelligence.mastervenueworker.infrastructure.config;
 
 import java.util.UUID;
 import javax.sql.DataSource;
 
-import com.iqkv.docintelligence.catalogprocessingworker.infrastructure.mybatis.UuidTypeHandler;
+import com.iqkv.docintelligence.mastervenueworker.infrastructure.mybatis.UuidTypeHandler;
 import com.iqkv.foundation.tenancy.MyBatisSchemaInterceptor;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.session.SqlSessionFactory;
@@ -36,7 +36,7 @@ import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 @Configuration
 @MapperScan(
     basePackages = {
-        "com.iqkv.docintelligence.catalogprocessingworker.mastervenue"
+        "com.iqkv.docintelligence.mastervenueworker.mastervenue"
     },
     annotationClass = Mapper.class
 )

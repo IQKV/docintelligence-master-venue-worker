@@ -8,7 +8,7 @@
         <version>0.24.35</version>
     </parent>
     <groupId>com.iqkv</groupId>
-    <artifactId>docintelligence-catalog-processing-worker</artifactId>
+    <artifactId>docintelligence-master-venue-worker</artifactId>
     <version>0.0.0-SNAPSHOT</version>
     <name>Catalog Processing Worker</name>
     <description>Document Intelligence Catalog Processing Worker.</description>
@@ -23,7 +23,7 @@
         <checkstyle.skip>false</checkstyle.skip>
         <maven.gitcommitid.skip>false</maven.gitcommitid.skip>
         <jacoco.skip>true</jacoco.skip>
-        <start-class>com.iqkv.docintelligence.catalogprocessingworker.CatalogProcessingWorkerApplication</start-class>
+        <start-class>com.iqkv.docintelligence.mastervenueworker.MasterVenueWorkerApplication</start-class>
     </properties>
 
     <dependencies>

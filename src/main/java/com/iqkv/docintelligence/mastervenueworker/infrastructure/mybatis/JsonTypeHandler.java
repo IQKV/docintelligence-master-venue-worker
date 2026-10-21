@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.iqkv.docintelligence.catalogprocessingworker.infrastructure.mybatis;
+package com.iqkv.docintelligence.mastervenueworker.infrastructure.mybatis;
 
 import java.sql.CallableStatement;
 import java.sql.PreparedStatement;

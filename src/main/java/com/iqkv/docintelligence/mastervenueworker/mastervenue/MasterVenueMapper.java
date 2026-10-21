@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.iqkv.docintelligence.catalogprocessingworker.mastervenue;
+package com.iqkv.docintelligence.mastervenueworker.mastervenue;
 
 import java.util.List;
 import java.util.Optional;

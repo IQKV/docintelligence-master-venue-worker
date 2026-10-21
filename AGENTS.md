@@ -266,6 +266,7 @@ Before making recommendations, agents should understand the project's technology
 - `mybatis.configuration.map-underscore-to-camel-case=true` is enabled globally
 - Mapper interfaces annotated with `@Mapper`; XML mapper files in `src/main/resources/mappers/<context>/`
 - **Shared schema** — this service owns no migrations. It reads and writes the PostgreSQL schema and tables maintained by `docintelligence-catalog-service`, which runs the Liquibase changelogs. There is no `db/changelog/` here and Liquibase is not on the classpath.
+- **Master catalog writer** — this service is the sole writer of `public.master_venue`, `public.master_venue_alias`, and `public.master_venue_external`. It never reads or writes a tenant schema; the master catalog tables are created once in `public` by `docintelligence-catalog-service`.
 
 **Security**
 
@@ -278,10 +279,6 @@ Before making recommendations, agents should understand the project's technology
 - Mockito for mocking
 - Testcontainers for integration tests (if configured)
 - ArchUnit for architecture validation
-
-**AI**
-
-- Spring AI Ollama starter (`spring-ai-starter-model-ollama`) — connectivity to an Ollama instance only
 
 **Build & Deployment**
 
@@ -610,13 +607,13 @@ class UserServiceIntegrationTest {
 **Architecture Tests with ArchUnit:**
 
 ```java
-@AnalyzeClasses(packagesOf = CatalogProcessingWorkerApplication.class, importOptions = DoNotIncludeTests.class)
+@AnalyzeClasses(packagesOf = MasterVenueWorkerApplication.class, importOptions = DoNotIncludeTests.class)
 class TechnicalStructureTest {
 
   @ArchTest
   static final ArchRule respectsTechnicalArchitectureLayers = onionArchitecture()
       .withOptionalLayers(true)
-      .ignoreDependency(belongToAnyOf(CatalogProcessingWorkerApplication.class), alwaysTrue());
+      .ignoreDependency(belongToAnyOf(MasterVenueWorkerApplication.class), alwaysTrue());
 }
 ```
 

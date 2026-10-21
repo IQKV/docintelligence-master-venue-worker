@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.iqkv.docintelligence.catalogprocessingworker.infrastructure.config;
+package com.iqkv.docintelligence.mastervenueworker.infrastructure.config;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;

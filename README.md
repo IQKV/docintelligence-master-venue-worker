@@ -1,32 +1,34 @@
-# Document Intelligence Catalog Processing Worker 🚀
+# Document Intelligence Master Venue Worker 🏛️
 
-GitHub template for the iQ Key Value platform. Extends the standard `foundation-microservice-project-layout` with an event-driven companion worker backed by PostgreSQL, RabbitMQ, and Ollama.
+Master venue catalog loader on the iQ Key Value platform. A deterministic, LLM-free batch worker backed by PostgreSQL, S3, and RabbitMQ.
 
 ## Service Role
 
-This is the asynchronous half of the Document Intelligence catalog pair — the **companion worker** (asynchronous sibling service) to `docintelligence-catalog-service`, not a sidecar. It exposes no inbound HTTP API — every trigger arrives as a message.
+This is the batch half of the master catalog pipeline — the **companion worker** (asynchronous sibling service) to `docintelligence-catalog-service`, not a sidecar. It exposes no inbound HTTP API beyond Actuator health — every trigger arrives as a message.
 
-1. **Consume** — `docintelligence-catalog-service` publishes extraction work onto the catalog queue; this worker subscribes to it.
-2. **Process** — assets are read from the shared folder / S3 and processed, with Spring AI against Ollama backing the model-dependent steps.
-3. **Feed back** — results are written to the shared catalog tables and a feedback event is published upstream, so the catalog service can advance the venue's profile.
+1. **Dry-run** — on `admin.master-catalog.import.dry-run`, read the scraper's import batch from S3 and emit a CSV audit report. Every row carries the recommended action (`INSERT` / `MERGE #id` / `SKIP`) together with name similarity, geo distance, and the candidate list.
+2. **Apply** — once an admin has reviewed and re-uploaded the annotated CSV, `admin.master-catalog.import.apply` applies exactly the reviewed actions. Nothing is auto-applied; the worker makes no autonomous deduplication decisions.
+3. **Write** — rows land in `public.master_venue`, `public.master_venue_alias`, and `public.master_venue_external`. Deduplication and alias normalisation are deterministic (`pg_trgm` similarity plus PostGIS distance); no LLM is involved anywhere in the path.
+
+The worker never reads or writes a tenant schema, and it never runs migrations.
 
 ### Shared Infrastructure
 
-The worker deliberately shares the PostgreSQL schema and tables and the RabbitMQ broker with `docintelligence-catalog-service`. This is a conscious exception to the platform's self-contained-service rule, traded for simplicity and per-message performance inside a single product boundary. The catalog service owns the schema migrations; this worker only reads and writes the shared tables.
+The worker deliberately shares the PostgreSQL instance and the RabbitMQ broker with the rest of the product, and reads its input from the same S3 bucket the scrapers write to. This is a conscious exception to the platform's self-contained-service rule, traded for simplicity inside a single product boundary.
 
-What the two share is data, not a host: they run as separate deployables with independent lifecycles and scale on different axes (API traffic for the catalog, queue depth for the worker). That is what makes this a **companion service** rather than a sidecar.
+DDL for the master catalog tables stays with `docintelligence-catalog-service` (its `system/master.xml` changelog); this worker is only the write owner of those rows. What the two share is data, not a host: they run as separate deployables with independent lifecycles — the catalog service scales on API traffic, this worker on import batches. That is what makes it a **companion service** rather than a sidecar.
 
 ## About
 
-This template provides:
+This service provides:
 
-- **Maven single-module layout** — standard `src/main/java` structure with MyBatis, PostgreSQL, and RabbitMQ wired up
-- **Ollama connectivity** — LLM client wired to a local Ollama instance via `spring.ai.ollama.*` (base URL and model configurable per environment)
+- **Maven single-module layout** — standard `src/main/java` structure with MyBatis, PostgreSQL, RabbitMQ, and MinIO wired up
 - **Multi-profile Spring config** — `local`, `sit`, `uat`, `prd` profiles with correct defaults per environment
-- **Docker Compose** — `compose.base.yaml` with PostgreSQL, RabbitMQ, DbGate, Ollama, SonarQube, Prometheus, and Grafana; `compose.container.yaml` for full runtime stack including the service container
+- **Docker Compose** — `compose.base.yaml` with PostgreSQL, RabbitMQ, MinIO, DbGate, Prometheus, and Grafana; `compose.container.yaml` for the full runtime stack including the service container
 - **Dockerfile** — multi-stage build with layered JAR extraction, non-root `appuser`, and JVM tuning
 - **Database Initialization** — `docker/postgres/init-catalog.sql` for automated schema and extension setup
 - **Messaging** — RabbitMQ connection, Jackson JSON message converter and listener retry policy, gated by `iqkv.messaging.rabbitmq.enabled`
+- **Object storage** — MinIO/S3 client for reading import batches and writing report artefacts
 - **Observability** — Micrometer + Prometheus + structured JSON logging (Logstash encoder); Actuator HTTP endpoints (the only use of Spring Web)
 - **Quality tools** — Checkstyle, JaCoCo, ArchUnit, Husky git hooks, commitlint
 
@@ -39,8 +41,8 @@ This template provides:
 ## Tech Stack
 
 - Java 25 / Spring Boot (latest via parent POM)
-- Spring AI Ollama starter (local LLM connectivity)
-- MyBatis 3.x (no JPA) + PostgreSQL 17
+- MyBatis 3.x (no JPA) + PostgreSQL 17 (pg_trgm, PostGIS)
+- MinIO / S3-compatible object storage
 - RabbitMQ for async messaging
 - Micrometer + Prometheus
 - Spring Web — Actuator endpoints only
@@ -51,26 +53,22 @@ This template provides:
 - Maven 3.9+
 - Node.js >= 22.15.0 & pnpm >= 10.33.2 (git hooks)
 - Docker & Docker Compose
-- [Ollama](https://ollama.com) running locally with at least one model pulled (e.g. `ollama pull llama3.2`)
 
 ## Quick Start
 
 ```bash
-# Clone or use as template
-git clone https://github.com/IQKV/docintelligence-catalog-processing-worker.git my-service
-cd my-service
+# Clone the repository
+git clone https://github.com/IQKV/docintelligence-master-venue-worker.git
+cd docintelligence-master-venue-worker
 
 # Install git hooks
 pnpm install
 
-# Pull a model into Ollama (one-time)
-ollama pull llama3.2
-
 # Copy environment variables
 cp .env.example .env.local
-# Defaults point to Ollama on localhost:11434 — no API key needed for local dev
+# Defaults point to the local compose infrastructure — no edits needed for first run
 
-# Start dependencies (PostgreSQL, RabbitMQ, etc.)
+# Start dependencies (PostgreSQL, RabbitMQ, MinIO)
 docker compose up -d
 
 # Run the service
@@ -80,21 +78,25 @@ docker compose up -d
 
 ## Environment Variables
 
-| Variable                              | Default                  | Description                           |
-| ------------------------------------- | ------------------------ | ------------------------------------- |
-| `DB_HOST`                             | `localhost`              | PostgreSQL host                       |
-| `DB_PORT`                             | `5432`                   | PostgreSQL port                       |
-| `DB_NAME`                             | `catalogservice`         | Database name                         |
-| `DB_USERNAME`                         | `svc_catalog_dba`        | Database user                         |
-| `DB_PASSWORD`                         | `svc_catalog_dba`        | Database password                     |
-| `RABBITMQ_HOST`                       | `localhost`              | RabbitMQ host                         |
-| `RABBITMQ_PORT`                       | `5672`                   | RabbitMQ AMQP port                    |
-| `RABBITMQ_USERNAME`                   | `svc_catalog_rmq`        | RabbitMQ user                         |
-| `RABBITMQ_PASSWORD`                   | `svc_catalog_rmq`        | RabbitMQ password                     |
-| `SPRING_AI_OLLAMA_BASE_URL`           | `http://localhost:11434` | Ollama server URL                     |
-| `SPRING_AI_OLLAMA_CHAT_OPTIONS_MODEL` | `llama3.2`               | Model name (must be pulled in Ollama) |
+| Variable                       | Default                  | Description                             |
+| ------------------------------ | ------------------------ | --------------------------------------- |
+| `DB_HOST`                      | `localhost`              | PostgreSQL host                         |
+| `DB_PORT`                      | `5432`                   | PostgreSQL port                         |
+| `DB_NAME`                      | `catalogservice`         | Database name                           |
+| `DB_USERNAME`                  | `svc_catalog_dba`        | Database user                           |
+| `DB_PASSWORD`                  | `svc_catalog_dba`        | Database password                       |
+| `RABBITMQ_HOST`                | `localhost`              | RabbitMQ host                           |
+| `RABBITMQ_PORT`                | `5672`                   | RabbitMQ AMQP port                      |
+| `RABBITMQ_USERNAME`            | `svc_catalog_rmq`        | RabbitMQ user                           |
+| `RABBITMQ_PASSWORD`            | `svc_catalog_rmq`        | RabbitMQ password                       |
+| `OBJECTSTORAGE_ENDPOINT`       | `http://localhost:9000`  | S3-compatible endpoint                  |
+| `OBJECTSTORAGE_ACCESS_KEY`     | `iqkv`                   | S3 access key                           |
+| `OBJECTSTORAGE_SECRET_KEY`     | `iqkv_password`          | S3 secret key                           |
+| `OBJECTSTORAGE_BUCKET_NAME`    | `catalog-assets`         | Bucket holding the master catalog paths |
+| `MESSAGING_ENABLED`            | `false`                  | RabbitMQ listener toggle                |
+| `SPRING_PROFILES_ACTIVE`       | `local`                  | Active Spring profile                   |
 
-> Copy `.env.example` to `.env.local` / `.env.uat` / `.env.prd` and fill in values per environment.
+> Copy `.env.example` to `.env.local` / `.env.uat` / `.env.prd` and fill in values per environment. Import batches live under the `docintelligence/master-catalog/imports/{importId}/` prefix of the shared bucket.
 
 ## Maven Commands
 
@@ -119,7 +121,7 @@ docker compose up -d
 
 ```bash
 # Build image
-docker build -t iqkv/docintelligence-catalog-processing-worker:latest .
+docker build -t iqkv/docintelligence-master-venue-worker:latest .
 
 # Run full stack (service + dependencies)
 docker compose -f compose.container.yaml up -d
@@ -141,8 +143,9 @@ docker compose -f compose.container.yaml up -d
 │   ├── postgres/       # DB initialization scripts (init-catalog.sql)
 │   ├── prometheus/     # Prometheus configuration
 │   └── grafana/        # Grafana dashboards and datasources
-├── src/main/java/com/iqkv/docintelligence/catalogprocessingworker/
-│   ├── infrastructure/ # Spring config, MyBatis, RabbitMQ setup
+├── src/main/java/com/iqkv/docintelligence/mastervenueworker/
+│   ├── infrastructure/ # Spring config, MyBatis, RabbitMQ, object storage
+│   ├── mastervenue/    # Master catalog model and MyBatis mapper
 │   └── shared/         # Common utilities, value objects
 ```
 
@@ -152,9 +155,7 @@ This project is licensed under the Apache License. See the [LICENSE](LICENSE) fi
 
 ## Branch Strategy
 
-> **Template note:** The strategy below is the default shipped with this template. Replace it with whatever model fits your team — update branch names, CI triggers, and protection rules to match.
-
-This template uses **scaled trunk-based development**:
+This repository uses **scaled trunk-based development**:
 
 - `dev` is the trunk — always stable and deployable
 - Short-lived feature/bugfix branches merge into `dev` via pull request
@@ -177,9 +178,10 @@ Please read our [Contributing Guidelines](.github/CONTRIBUTING.md) and [Code of 
 
 ## 🧩 Architecture
 
-- **Ollama**: LLM connectivity configured via `spring.ai.ollama.*` (`SPRING_AI_OLLAMA_BASE_URL`, `SPRING_AI_OLLAMA_CHAT_OPTIONS_MODEL`)
-- **Persistence**: MyBatis with XML mappers + PostgreSQL
+- **Persistence**: MyBatis with XML mappers + PostgreSQL; writes `public.master_venue*` only, never a tenant schema
+- **Import pipeline**: `admin.master-catalog.import.dry-run` / `admin.master-catalog.import.apply` events; nothing is applied without a reviewed batch
 - **Messaging**: RabbitMQ connection, Jackson JSON message converter and listener retry policy; `iqkv.messaging.rabbitmq.enabled` toggle — disabled in base, enabled per profile
+- **Object storage**: MinIO/S3 client reading `docintelligence/master-catalog/imports/{importId}/`
 - **Web**: Spring Web is present only to serve Actuator HTTP endpoints (management port 8081)
 - **Credential convention**: DB users follow `svc_{service}_dba`, RabbitMQ users follow `svc_{service}_rmq`
 - **Observability**: Micrometer + Prometheus; structured JSON logging with Logstash encoder; health probes for Kubernetes

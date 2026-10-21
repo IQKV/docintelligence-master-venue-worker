@@ -2,14 +2,13 @@
 
 ### Overview
 
-The Document Intelligence Catalog Processing Worker is deployed using Helm charts and automated CI/CD pipelines. The service connects to an Ollama instance for LLM connectivity, backed by PostgreSQL and RabbitMQ.
+The Document Intelligence Master Venue Worker is deployed using Helm charts and automated CI/CD pipelines. The service connects to PostgreSQL, RabbitMQ, and S3-compatible object storage.
 
 ### Prerequisites
 
 - Kubernetes 1.19+
 - Helm 3.2.0+
-- External infrastructure services (PostgreSQL, RabbitMQ)
-- Ollama instance accessible within the cluster (or externally via URL)
+- External infrastructure services (PostgreSQL, RabbitMQ, S3-compatible object storage)
 
 ### Environments
 
@@ -58,7 +57,7 @@ The service uses a Drone CI/CD pipeline with 10 stages:
 | `INFRA_POSTGRESQL_PASSWORD`       | PostgreSQL database password      | Application configuration                  |
 | `INFRA_RABBITMQ_PASSWORD`         | RabbitMQ message broker password  | Application configuration                  |
 
-> No `SMTP_*` secrets required — the Catalog Processing Worker does not send email.
+> No `SMTP_*` secrets required — the Master Venue Worker does not send email.
 
 </details>
 
@@ -77,7 +76,7 @@ The service uses a Drone CI/CD pipeline with 10 stages:
 
 ```bash
 # WIP / Feature branches (SIT)
-helm upgrade --install --atomic --wait --timeout 5m docintelligence-catalog-processing-worker ./ \
+helm upgrade --install --atomic --wait --timeout 5m docintelligence-master-venue-worker ./ \
   --values ./values.yaml \
   --values ./values-sit.yaml \
   --set image.tag=${DRONE_BRANCH} \
@@ -87,7 +86,7 @@ helm upgrade --install --atomic --wait --timeout 5m docintelligence-catalog-proc
   --create-namespace
 
 # Production (tagged releases)
-helm upgrade --install --atomic --wait --timeout 5m docintelligence-catalog-processing-worker ./ \
+helm upgrade --install --atomic --wait --timeout 5m docintelligence-master-venue-worker ./ \
   --values ./values.yaml \
   --values ./values-prd.yaml \
   --set image.tag=${DRONE_TAG} \
@@ -106,10 +105,10 @@ helm upgrade --install --atomic --wait --timeout 5m docintelligence-catalog-proc
 ```bash
 # Clone Helm charts
 git clone <HELM_CHARTS_REPOSITORY> charts
-cd charts/IQKV/docintelligence-catalog-processing-worker
+cd charts/IQKV/docintelligence-master-venue-worker
 
 # Deploy to SIT
-helm upgrade --install docintelligence-catalog-processing-worker ./ \
+helm upgrade --install docintelligence-master-venue-worker ./ \
   --values values-sit.yaml \
   --set infraServices.postgresql.password="your-db-password" \
   --set infraServices.rabbitmq.password="your-rabbitmq-password" \
@@ -120,35 +119,17 @@ helm upgrade --install docintelligence-catalog-processing-worker ./ \
 #### Secret Configuration Examples
 
 ```bash
-drone secret add --repository IQKV/docintelligence-catalog-processing-worker --name INFRA_POSTGRESQL_PASSWORD --data "your-postgresql-password"
-drone secret add --repository IQKV/docintelligence-catalog-processing-worker --name INFRA_RABBITMQ_PASSWORD --data "your-rabbitmq-password"
+drone secret add --repository IQKV/docintelligence-master-venue-worker --name INFRA_POSTGRESQL_PASSWORD --data "your-postgresql-password"
+drone secret add --repository IQKV/docintelligence-master-venue-worker --name INFRA_RABBITMQ_PASSWORD --data "your-rabbitmq-password"
 ```
 
 #### External Services
 
 The service connects to these external infrastructure components:
 
-- **PostgreSQL**: Service data persistence
-- **RabbitMQ**: Messaging
-- **Ollama**: LLM inference endpoint (`http://foundation-ollama:11434` by default)
-
-> **Ollama note:** The default values point to `http://foundation-ollama:11434` (in-cluster). For external Ollama instances (e.g. a VDS with GPU), override `ai.ollama.baseUrl` via `--set` or the Helm values file.
-
-#### Ollama Model Setup
-
-After first deployment, pull the required model into Ollama:
-
-```bash
-kubectl exec -it deployment/foundation-ollama -n iqkv-sit-env -- ollama pull llama3.1:8b
-```
-
-Or, if using an external Ollama instance:
-
-```bash
-docker exec <ollama-container> ollama pull llama3.1:8b
-```
-
-The default model is `llama3.1:8b`. Override via `ai.ollama.model` in values or the `SPRING_AI_OLLAMA_CHAT_OPTIONS_MODEL` env var.
+- **PostgreSQL**: Master catalog persistence (shared instance; migrations are owned by `docintelligence-catalog-service`)
+- **RabbitMQ**: `admin.master-catalog.import.*` import events
+- **S3-compatible object storage**: master catalog import batches and report artefacts
 
 #### Service Configuration
 
@@ -187,20 +168,20 @@ UAT and production deployments include:
 1. **Database connection failures**
 
     ```bash
-    kubectl logs deployment/docintelligence-catalog-processing-worker -n iqkv-sit-env
+    kubectl logs deployment/docintelligence-master-venue-worker -n iqkv-sit-env
     ```
 
 2. **Check configuration**
 
     ```bash
-    kubectl describe configmap docintelligence-catalog-processing-worker-config -n iqkv-sit-env
-    kubectl describe secret docintelligence-catalog-processing-worker-secrets -n iqkv-sit-env
+    kubectl describe configmap docintelligence-master-venue-worker-config -n iqkv-sit-env
+    kubectl describe secret docintelligence-master-venue-worker-secrets -n iqkv-sit-env
     ```
 
 3. **Test health endpoints**
 
     ```bash
-    kubectl port-forward deployment/docintelligence-catalog-processing-worker 8081:8081 -n iqkv-sit-env
+    kubectl port-forward deployment/docintelligence-master-venue-worker 8081:8081 -n iqkv-sit-env
     curl http://localhost:8081/actuator/health
     ```
 
@@ -208,22 +189,22 @@ UAT and production deployments include:
 
 ```bash
 kubectl get secrets -n iqkv-sit-env
-kubectl get secret docintelligence-catalog-processing-worker-secrets -n iqkv-sit-env -o yaml
-drone secret ls --repository IQKV/docintelligence-catalog-processing-worker
+kubectl get secret docintelligence-master-venue-worker-secrets -n iqkv-sit-env -o yaml
+drone secret ls --repository IQKV/docintelligence-master-venue-worker
 ```
 
 #### Rollback
 
 ```bash
-helm rollback docintelligence-catalog-processing-worker -n iqkv-prd-env
+helm rollback docintelligence-master-venue-worker -n iqkv-prd-env
 # Or uninstall completely
-helm uninstall docintelligence-catalog-processing-worker -n iqkv-prd-env
+helm uninstall docintelligence-master-venue-worker -n iqkv-prd-env
 ```
 
 ### Security
 
 - All sensitive values injected via `--set` flags from Drone secrets (never stored in chart)
 - TLS configurable via cert-manager in production ingress
-- Network policies restrict pod communication in production — includes explicit Ollama egress rule (port 11434)
+- Network policies restrict pod communication in production — includes explicit egress rules for PostgreSQL, RabbitMQ, and S3-compatible object storage
 - Non-root container execution (UID 1001)
 - Read-only root filesystem in production

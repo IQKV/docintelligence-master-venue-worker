@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.iqkv.docintelligence.catalogprocessingworker.mastervenue.MasterVenueMapper">
+<mapper namespace="com.iqkv.docintelligence.mastervenueworker.mastervenue.MasterVenueMapper">
 
     <resultMap id="masterVenueResultMap"
-               type="com.iqkv.docintelligence.catalogprocessingworker.mastervenue.MasterVenue">
+               type="com.iqkv.docintelligence.mastervenueworker.mastervenue.MasterVenue">
         <id property="id" column="id"/>
         <result property="name" column="name"/>
         <result property="address" column="address"/>
@@ -18,23 +18,23 @@
         <result property="updatedAt" column="updated_at"/>
     </resultMap>
 
-    <insert id="insert" parameterType="com.iqkv.docintelligence.catalogprocessingworker.mastervenue.MasterVenue">
+    <insert id="insert" parameterType="com.iqkv.docintelligence.mastervenueworker.mastervenue.MasterVenue">
         INSERT INTO public.master_venue
         (id, name, address, city, location_lat, location_lng, metadata, confidence, source)
         VALUES
         (#{id}, #{name}, #{address}, #{city}, #{locationLat}, #{locationLng},
-        #{metadata, jdbcType=OTHER, typeHandler=com.iqkv.docintelligence.catalogprocessingworker.infrastructure.mybatis.JsonTypeHandler},
+        #{metadata, jdbcType=OTHER, typeHandler=com.iqkv.docintelligence.mastervenueworker.infrastructure.mybatis.JsonTypeHandler},
         #{confidence}, #{source})
     </insert>
 
-    <update id="update" parameterType="com.iqkv.docintelligence.catalogprocessingworker.mastervenue.MasterVenue">
+    <update id="update" parameterType="com.iqkv.docintelligence.mastervenueworker.mastervenue.MasterVenue">
         UPDATE public.master_venue
         SET name = #{name},
         address = #{address},
         city = #{city},
         location_lat = #{locationLat},
         location_lng = #{locationLng},
-        metadata = #{metadata, jdbcType=OTHER, typeHandler=com.iqkv.docintelligence.catalogprocessingworker.infrastructure.mybatis.JsonTypeHandler},
+        metadata = #{metadata, jdbcType=OTHER, typeHandler=com.iqkv.docintelligence.mastervenueworker.infrastructure.mybatis.JsonTypeHandler},
         confidence = #{confidence},
         source = #{source},
         updated_at = NOW()

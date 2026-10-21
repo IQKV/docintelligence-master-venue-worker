@@ -4,7 +4,7 @@
 
 spring:
   application:
-    name: docintelligence-catalog-processing-worker
+    name: docintelligence-master-venue-worker
   datasource:
     url: jdbc:postgresql://${iqkv.db.host}:${iqkv.db.port}/${iqkv.db.name}
     username: ${iqkv.db.username}

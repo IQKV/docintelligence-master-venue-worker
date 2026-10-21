@@ -14,17 +14,8 @@
  * limitations under the License.
  */
 
-package com.iqkv.docintelligence.catalogprocessingworker;
-
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
-
-@SpringBootTest
-@ActiveProfiles("test")
-class CatalogProcessingWorkerApplicationTests {
-
-  @Test
-  void contextLoads() {
-  }
-}
+/**
+ * Shared kernel: cross-cutting utilities, common exceptions, and domain primitives
+ * reused across bounded contexts within this service.
+ */
+package com.iqkv.docintelligence.mastervenueworker.shared;

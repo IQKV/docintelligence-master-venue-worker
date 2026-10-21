@@ -142,12 +142,12 @@ services:
       context: .
       dockerfile: ./Dockerfile
       target: builder
-    image: iqkv/docintelligence-catalog-processing-worker:local
-    container_name: docintelligence-catalog-processing-worker-dev
+    image: iqkv/docintelligence-master-venue-worker:local
+    container_name: docintelligence-master-venue-worker-dev
     environment:
       # Spring Configuration
       SPRING_PROFILES_ACTIVE: local
-      SPRING_APPLICATION_NAME: docintelligence-catalog-processing-worker
+      SPRING_APPLICATION_NAME: docintelligence-master-venue-worker
 
       # Database Configuration
       DB_HOST: postgres-catalog
@@ -172,8 +172,8 @@ services:
       OBJECTSTORAGE_SSL: "false"
 
       # Observability
-      OTEL_SERVICE_NAME: docintelligence-catalog-processing-worker
-      OTEL_RESOURCE_ATTRIBUTES: service.name=docintelligence-catalog-processing-worker,service.version=1.0.0,deployment.environment=dev
+      OTEL_SERVICE_NAME: docintelligence-master-venue-worker
+      OTEL_RESOURCE_ATTRIBUTES: service.name=docintelligence-master-venue-worker,service.version=1.0.0,deployment.environment=dev
 
       # JVM Configuration
       JAVA_OPTS: >-
@@ -281,7 +281,7 @@ services:
 networks:
   catalog-service-network:
     driver: bridge
-    name: docintelligence-catalog-processing-worker-network-dev
+    name: docintelligence-master-venue-worker-network-dev
     ipam:
       config:
         # Pick a unique /16 block for each new service to avoid subnet conflicts.
@@ -292,7 +292,7 @@ networks:
         #   172.23.0.0/16  — foundation-gateway-service
         #   172.24.0.0/16  — foundation-cms-service
         #   172.25.0.0/16  — foundation-audit-service
-        #   172.26.0.0/16  — docintelligence-catalog-processing-worker
+        #   172.26.0.0/16  — docintelligence-master-venue-worker
         #   172.27.0.0/16  — next available
         - subnet: 172.26.0.0/16
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.iqkv.docintelligence.catalogprocessingworker;
+package com.iqkv.docintelligence.mastervenueworker;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -29,7 +29,7 @@ import org.springframework.test.context.ActiveProfiles;
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-@SpringBootTest(classes = {CatalogProcessingWorkerApplication.class})
+@SpringBootTest(classes = {MasterVenueWorkerApplication.class})
 @ActiveProfiles("test")
 public @interface IntegrationTest {
 

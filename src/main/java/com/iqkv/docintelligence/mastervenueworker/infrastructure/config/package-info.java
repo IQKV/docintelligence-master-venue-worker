@@ -15,8 +15,9 @@
  */
 
 /**
- * Utility classes shared across all bounded contexts (e.g. date helpers, string utilities).
- * Classes in this package must not depend on any bounded-context or infrastructure packages.
+ * Spring {@code @Configuration} classes and application-wide bean definitions.
+ * This is the top-level technical concern; it may reference all other packages but must not
+ * contain any business logic.
  */
 
-package com.iqkv.docintelligence.catalogprocessingworker.shared.util;
+package com.iqkv.docintelligence.mastervenueworker.infrastructure.config;
