@@ -42,6 +42,7 @@ This service provides:
 
 - Java 25 / Spring Boot (latest via parent POM)
 - MyBatis 3.x (no JPA) + PostgreSQL 17 (pg_trgm, PostGIS)
+- `com.iqkv:docintelligence-venue` — shared venue model and mapper
 - MinIO / S3-compatible object storage
 - RabbitMQ for async messaging
 - Micrometer + Prometheus
@@ -145,7 +146,6 @@ docker compose -f compose.container.yaml up -d
 │   └── grafana/        # Grafana dashboards and datasources
 ├── src/main/java/com/iqkv/docintelligence/mastervenueworker/
 │   ├── infrastructure/ # Spring config, MyBatis, RabbitMQ, object storage
-│   ├── mastervenue/    # Master catalog model and MyBatis mapper
 │   └── shared/         # Common utilities, value objects
 ```
 
