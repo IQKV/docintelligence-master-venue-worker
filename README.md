@@ -79,26 +79,26 @@ docker compose up -d
 
 ## Environment Variables
 
-| Variable                         | Default                  | Description                             |
-| -------------------------------- | ------------------------ | --------------------------------------- |
-| `DB_HOST`                        | `localhost`              | PostgreSQL host                         |
-| `DB_PORT`                        | `5432`                   | PostgreSQL port                         |
-| `DB_NAME`                        | `catalogservice`         | Database name                           |
-| `DB_USERNAME`                    | `svc_catalog_dba`        | Database user                           |
-| `DB_PASSWORD`                    | `svc_catalog_dba`        | Database password                       |
-| `RABBITMQ_HOST`                  | `localhost`              | RabbitMQ host                           |
-| `RABBITMQ_PORT`                  | `5672`                   | RabbitMQ AMQP port                      |
-| `RABBITMQ_USERNAME`              | `svc_catalog_rmq`        | RabbitMQ user                           |
-| `RABBITMQ_PASSWORD`              | `svc_catalog_rmq`        | RabbitMQ password                       |
-| `OBJECTSTORAGE_ENDPOINT`         | `http://localhost:9000`  | S3-compatible endpoint                  |
-| `OBJECTSTORAGE_ACCESS_KEY`       | `iqkv`                   | S3 access key                           |
-| `OBJECTSTORAGE_SECRET_KEY`       | `iqkv_password`          | S3 secret key                           |
-| `OBJECTSTORAGE_BUCKET_NAME`      | `catalog-assets`         | Bucket holding the master catalog paths |
-| `INGEST_SOURCE_TAGVENUE_ENABLED` | `true`                   | Enable the tagvenue data provider       |
-| `INGEST_DIR`                     | `/data/mc-ingest`        | mc-ingest tree written by the scraper   |
-| `INGEST_POLL_INTERVAL`           | `PT30S`                  | Delay between ingest tree scans         |
-| `MESSAGING_ENABLED`              | `false`                  | RabbitMQ listener toggle                |
-| `SPRING_PROFILES_ACTIVE`         | `local`                  | Active Spring profile                   |
+| Variable                         | Default                 | Description                             |
+| -------------------------------- | ----------------------- | --------------------------------------- |
+| `DB_HOST`                        | `localhost`             | PostgreSQL host                         |
+| `DB_PORT`                        | `5432`                  | PostgreSQL port                         |
+| `DB_NAME`                        | `catalogservice`        | Database name                           |
+| `DB_USERNAME`                    | `svc_catalog_dba`       | Database user                           |
+| `DB_PASSWORD`                    | `svc_catalog_dba`       | Database password                       |
+| `RABBITMQ_HOST`                  | `localhost`             | RabbitMQ host                           |
+| `RABBITMQ_PORT`                  | `5672`                  | RabbitMQ AMQP port                      |
+| `RABBITMQ_USERNAME`              | `svc_catalog_rmq`       | RabbitMQ user                           |
+| `RABBITMQ_PASSWORD`              | `svc_catalog_rmq`       | RabbitMQ password                       |
+| `OBJECTSTORAGE_ENDPOINT`         | `http://localhost:9000` | S3-compatible endpoint                  |
+| `OBJECTSTORAGE_ACCESS_KEY`       | `iqkv`                  | S3 access key                           |
+| `OBJECTSTORAGE_SECRET_KEY`       | `iqkv_password`         | S3 secret key                           |
+| `OBJECTSTORAGE_BUCKET_NAME`      | `catalog-assets`        | Bucket holding the master catalog paths |
+| `INGEST_SOURCE_TAGVENUE_ENABLED` | `true`                  | Enable the tagvenue data provider       |
+| `INGEST_DIR`                     | `/data/mc-ingest`       | mc-ingest tree written by the scraper   |
+| `INGEST_POLL_INTERVAL`           | `PT30S`                 | Delay between ingest tree scans         |
+| `MESSAGING_ENABLED`              | `false`                 | RabbitMQ listener toggle                |
+| `SPRING_PROFILES_ACTIVE`         | `local`                 | Active Spring profile                   |
 
 > Copy `.env.example` to `.env.local` / `.env.uat` / `.env.prd` and fill in values per environment. Import batches live under the `docintelligence/master-catalog/imports/{importId}/` prefix of the shared bucket.
 
