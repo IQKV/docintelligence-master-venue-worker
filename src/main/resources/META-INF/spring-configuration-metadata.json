@@ -19,6 +19,18 @@
             "description": "RabbitMQ messaging toggles. 'enabled' drives @ConditionalOnProperty on the messaging configuration classes."
         },
         {
+            "name": "iqkv.ingest",
+            "type": "com.iqkv.docintelligence.mastervenueworker.infrastructure.config.IngestConfigurationProperties",
+            "sourceType": "com.iqkv.docintelligence.mastervenueworker.infrastructure.config.IngestConfigurationProperties",
+            "description": "Venue ingest configuration. 'source' holds one toggle per data provider, keyed by the provider key. 'dir' points at the tree docintelligence-mc-ingest-tagvenue-scraper writes into the volume shared with this worker — one record folder per venue, each with a venue.json document and an assets/ folder of photos."
+        },
+        {
+            "name": "iqkv.ingest.source",
+            "type": "com.iqkv.docintelligence.mastervenueworker.infrastructure.config.IngestConfigurationProperties$Source",
+            "sourceType": "com.iqkv.docintelligence.mastervenueworker.infrastructure.config.IngestConfigurationProperties",
+            "description": "The toggle of one data provider, keyed by that provider's key — e.g. 'iqkv.ingest.source.tagvenue'."
+        },
+        {
             "name": "iqkv.platform",
             "description": "Platform-wide operational settings. Must be consistent across all core services (IAM, Billing, CMS, etc.) — all read the same ROLLOUT_MODE env var. This service declares them in application.yml for consistency but has no local binding class."
         },
@@ -105,6 +117,24 @@
             "type": "java.lang.Boolean",
             "description": "Enables RabbitMQ messaging. When false, the messaging configuration classes are skipped. Defaults to false for local safety; the Helm chart configmap sets MESSAGING_ENABLED per environment (sit/uat/prd).",
             "defaultValue": false
+        },
+        {
+            "name": "iqkv.ingest.source.tagvenue.enabled",
+            "type": "java.lang.Boolean",
+            "description": "Enables the tagvenue data provider. When false, that provider's beans are skipped, so its records in the shared volume are left untouched while the other sources keep polling. The Helm chart configmap sets INGEST_SOURCE_TAGVENUE_ENABLED per environment (sit/uat/prd).",
+            "defaultValue": true
+        },
+        {
+            "name": "iqkv.ingest.dir",
+            "type": "java.lang.String",
+            "description": "The ingest tree written by docintelligence-mc-ingest-tagvenue-scraper into the volume shared with this worker — one record folder per venue, each with a venue.json document and an assets/ folder of photos. The worker polls it, upserts each record into the master catalog, and removes the folder once ingested.",
+            "defaultValue": "/data/mc-ingest"
+        },
+        {
+            "name": "iqkv.ingest.poll-interval",
+            "type": "java.time.Duration",
+            "description": "Delay between two scans of the ingest tree — a fixed delay, so a cycle starts this long after the previous one finished. The scan is a directory listing, so a short interval is cheap.",
+            "defaultValue": "PT30S"
         },
         {
             "name": "iqkv.platform.rollout-mode",
@@ -220,6 +250,41 @@
         }
     ],
     "hints": [
+        {
+            "name": "iqkv.ingest.source.tagvenue.enabled",
+            "values": [
+                {
+                    "value": true,
+                    "description": "Default — the tagvenue provider is created and its records are ingested."
+                },
+                {
+                    "value": false,
+                    "description": "Tagvenue source off: no provider bean for it, its records stay in the shared volume."
+                }
+            ]
+        },
+        {
+            "name": "iqkv.ingest.dir",
+            "values": [
+                {
+                    "value": "/data/mc-ingest",
+                    "description": "Default — the mc-ingest tree of the volume the scraper writes to (Docker Compose / Helm)."
+                }
+            ]
+        },
+        {
+            "name": "iqkv.ingest.poll-interval",
+            "values": [
+                {
+                    "value": "PT30S",
+                    "description": "Default — responsive without hammering the shared volume."
+                },
+                {
+                    "value": "PT5M",
+                    "description": "Lazy cadence for low-traffic environments."
+                }
+            ]
+        },
         {
             "name": "iqkv.platform.rollout-mode",
             "values": [

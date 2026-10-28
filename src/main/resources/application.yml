@@ -72,6 +72,20 @@ iqkv:
       # Controlled via MESSAGING_ENABLED env var; defaults to false for local safety.
       # Helm chart configmap sets this per environment (sit/uat/prd).
       enabled: ${MESSAGING_ENABLED:false}
+  ingest:
+    # The ingest tree written by docintelligence-mc-ingest-tagvenue-scraper into the shared
+    # volume: one record folder per venue, each with venue.json and an assets/ folder. The
+    # worker polls it, upserts each record into the master catalog, and removes the folder.
+    dir: ${INGEST_DIR:/data/mc-ingest}
+    # Delay between two scans of the ingest tree. The scan is a directory listing, so a short
+    # interval is cheap and only bounds how long a freshly scraped record waits.
+    poll-interval: ${INGEST_POLL_INTERVAL:PT30S}
+    # One entry per data provider, keyed by the provider key. 'enabled' gates that provider's
+    # beans, so a source is switched off on its own without stopping the others. Helm chart
+    # configmap sets these per environment (sit/uat/prd).
+    source:
+      tagvenue:
+        enabled: ${INGEST_SOURCE_TAGVENUE_ENABLED:true}
   objectstorage:
     # Shares the catalog-assets bucket with docintelligence-catalog-service — the worker reads
     # the objects the service presigns and writes back derived artefacts, so bucket name and
