@@ -47,15 +47,15 @@ import org.springframework.validation.annotation.Validated;
  *
  * <p>{@code pollInterval} is the delay between two scans of that tree — the fix delay of the
  * scheduled poller, so a cycle starts that long after the previous one finished rather than on a
- * fixed wall-clock cadence. The scan itself is a directory listing, so a short interval is cheap;
- * it only bounds how long a freshly scraped record waits before it lands in the catalog.
+ * fixed wall-clock cadence. It bounds how long a freshly scraped record waits before it lands in
+ * the catalog, and defaults to half an hour.
  */
 @Validated
 @ConfigurationProperties(prefix = "iqkv.ingest")
 public record IngestConfigurationProperties(
     // The ingest tree written by the scraper, e.g. /data/mc-ingest.
     @NotBlank String dir,
-    // Delay between two scans of the ingest tree, e.g. PT30S.
+    // Delay between two scans of the ingest tree, e.g. PT30M.
     @NotNull Duration pollInterval,
     @Valid @NotNull Map<String, Source> source
 ) {

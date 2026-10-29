@@ -77,9 +77,9 @@ iqkv:
     # volume: one record folder per venue, each with venue.json and an assets/ folder. The
     # worker polls it, upserts each record into the master catalog, and removes the folder.
     dir: ${INGEST_DIR:/data/mc-ingest}
-    # Delay between two scans of the ingest tree. The scan is a directory listing, so a short
-    # interval is cheap and only bounds how long a freshly scraped record waits.
-    poll-interval: ${INGEST_POLL_INTERVAL:PT30S}
+    # Fixed delay between two scans of the ingest tree. 30 minutes bounds how long a freshly
+    # scraped record waits before it lands in the catalog.
+    poll-interval: ${INGEST_POLL_INTERVAL:PT30M}
     # One entry per data provider, keyed by the provider key. 'enabled' gates that provider's
     # beans, so a source is switched off on its own without stopping the others. Helm chart
     # configmap sets these per environment (sit/uat/prd).

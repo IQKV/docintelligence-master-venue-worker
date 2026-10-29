@@ -96,7 +96,7 @@ docker compose up -d
 | `OBJECTSTORAGE_BUCKET_NAME`      | `catalog-assets`        | Bucket holding the master catalog paths |
 | `INGEST_SOURCE_TAGVENUE_ENABLED` | `true`                  | Enable the tagvenue data provider       |
 | `INGEST_DIR`                     | `/data/mc-ingest`       | mc-ingest tree written by the scraper   |
-| `INGEST_POLL_INTERVAL`           | `PT30S`                 | Delay between ingest tree scans         |
+| `INGEST_POLL_INTERVAL`           | `PT30M`                 | Delay between ingest tree scans         |
 | `MESSAGING_ENABLED`              | `false`                 | RabbitMQ listener toggle                |
 | `SPRING_PROFILES_ACTIVE`         | `local`                 | Active Spring profile                   |
 

@@ -133,8 +133,8 @@
         {
             "name": "iqkv.ingest.poll-interval",
             "type": "java.time.Duration",
-            "description": "Delay between two scans of the ingest tree — a fixed delay, so a cycle starts this long after the previous one finished. The scan is a directory listing, so a short interval is cheap.",
-            "defaultValue": "PT30S"
+            "description": "Delay between two scans of the ingest tree — a fixed delay, so a cycle starts this long after the previous one finished.",
+            "defaultValue": "PT30M"
         },
         {
             "name": "iqkv.platform.rollout-mode",
@@ -276,11 +276,15 @@
             "name": "iqkv.ingest.poll-interval",
             "values": [
                 {
-                    "value": "PT30S",
-                    "description": "Default — responsive without hammering the shared volume."
+                    "value": "PT30M",
+                    "description": "Default — one cycle every half hour."
                 },
                 {
                     "value": "PT5M",
+                    "description": "More responsive cadence while a scrape is in flight."
+                },
+                {
+                    "value": "PT1H",
                     "description": "Lazy cadence for low-traffic environments."
                 }
             ]
