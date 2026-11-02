@@ -118,6 +118,7 @@ public class VenueIngestServiceImpl implements VenueIngestService {
     venue.setMetadata(record.metadataJson());
     venue.setConfidence(record.confidence());
     venue.setSource(record.source() == null ? DEFAULT_SOURCE : record.source());
+    venue.setPrimaryPhotoUrl(record.assets().isEmpty() ? null : record.assets().get(0).sourceUrl());
     return venue;
   }
 
