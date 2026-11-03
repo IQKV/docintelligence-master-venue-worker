@@ -71,6 +71,9 @@ class VenueIngestServiceImplTest {
   @Mock
   private VenueAssetStorage assetStorage;
 
+  @Mock
+  private VenueEmbeddingService embeddingService;
+
   @TempDir
   Path root;
 
@@ -79,7 +82,8 @@ class VenueIngestServiceImplTest {
   @BeforeEach
   void setUp() {
     this.service = new VenueIngestServiceImpl(
-        this.providers, this.masterVenueMapper, this.masterVenueAssetMapper, this.assetStorage);
+        this.providers, this.masterVenueMapper, this.masterVenueAssetMapper, this.assetStorage,
+        this.embeddingService);
   }
 
   @Test
