@@ -60,14 +60,18 @@ public class VenueIngestServiceImpl implements VenueIngestService {
 
   private final VenueAssetStorage assetStorage;
 
+  private final VenueEmbeddingService embeddingService;
+
   public VenueIngestServiceImpl(final ObjectProvider<VenueDataProvider> providers,
                                 final MasterVenueMapper masterVenueMapper,
                                 final MasterVenueAssetMapper masterVenueAssetMapper,
-                                final VenueAssetStorage assetStorage) {
+                                final VenueAssetStorage assetStorage,
+                                final VenueEmbeddingService embeddingService) {
     this.providers = providers;
     this.masterVenueMapper = masterVenueMapper;
     this.masterVenueAssetMapper = masterVenueAssetMapper;
     this.assetStorage = assetStorage;
+    this.embeddingService = embeddingService;
   }
 
   @Override
@@ -102,6 +106,7 @@ public class VenueIngestServiceImpl implements VenueIngestService {
   private void ingest(final VenueIngestRecord record) {
     final MasterVenue stored = this.masterVenueMapper.upsertWithExternalIdentity(venue(record), external(record));
     storeAssets(stored.getId(), record);
+    this.embeddingService.embed(stored);
     log.info("ingested venue provider={} externalId={} id={} name=\"{}\" city={} assets={}",
         record.provider(), record.providerExternalId(), stored.getId(), stored.getName(), record.city(),
         record.assets().size());
