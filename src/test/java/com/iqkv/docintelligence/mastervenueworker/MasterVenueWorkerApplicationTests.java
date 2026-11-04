@@ -16,13 +16,21 @@
 
 package com.iqkv.docintelligence.mastervenueworker;
 
+import com.iqkv.docintelligence.mastervenueworker.ingest.VenueIngestScheduler;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest
 @ActiveProfiles("test")
 class MasterVenueWorkerApplicationTests {
+
+  /**
+   * The H2 smoke database carries no schema, so the scheduled ingest cycle must not run here.
+   */
+  @MockitoBean
+  private VenueIngestScheduler venueIngestScheduler;
 
   @Test
   void contextLoads() {

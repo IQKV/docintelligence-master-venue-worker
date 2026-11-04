@@ -20,7 +20,9 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
- * Polls the ingest tree on a fixed delay, driving {@link VenueIngestService#ingestPending()}.
+ * Polls the ingest tree on a fixed delay, driving {@link VenueIngestService#ingestPending()},
+ * then tops up embeddings for rows that are still missing one via
+ * {@link VenueEmbeddingService#backfill()}.
  *
  * <p>The delay is {@code iqkv.ingest.poll-interval} and is a fix delay, so a cycle starts that
  * long after the previous one finished rather than on a fixed wall clock cadence — a slow cycle
@@ -31,12 +33,17 @@ public class VenueIngestScheduler {
 
   private final VenueIngestService venueIngestService;
 
-  public VenueIngestScheduler(final VenueIngestService venueIngestService) {
+  private final VenueEmbeddingService venueEmbeddingService;
+
+  public VenueIngestScheduler(final VenueIngestService venueIngestService,
+                              final VenueEmbeddingService venueEmbeddingService) {
     this.venueIngestService = venueIngestService;
+    this.venueEmbeddingService = venueEmbeddingService;
   }
 
   @Scheduled(fixedDelayString = "${iqkv.ingest.poll-interval}")
   void poll() {
     this.venueIngestService.ingestPending();
+    this.venueEmbeddingService.backfill();
   }
 }
