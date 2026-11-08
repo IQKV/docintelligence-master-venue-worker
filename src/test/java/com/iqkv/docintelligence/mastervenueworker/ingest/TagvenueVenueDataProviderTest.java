@@ -57,7 +57,10 @@ class TagvenueVenueDataProviderTest {
           ]
         },
         "source_url": "https://www.tagvenue.com/venues/london/11896/the-last-talisman",
-        "metadata": { "_schema_version": 1, "capacity": { "maximum": 100 } },
+        "metadata": {
+          "_schema_version": 1,
+          "items": [{ "group": "capacity", "field": "max_total", "value": 100 }]
+        },
         "confidence": 0.82,
         "scrape_run": { "at": "2026-10-29T08:15:30.000Z" }
       }
