@@ -9,8 +9,8 @@ This document provides comprehensive guidelines for repository management, devel
 ### Feature-Sliced Project Layout
 
 This worker is organized by **vertical feature slices**, not by DDD layers. The main slice is
-`ingest`, which owns the venue import flow, storage adapters and scheduling logic, alongside the
-cross-cutting `infrastructure` and `shared` packages. There are deliberately no
+`ingest`, which owns the venue import flow, storage adapters, scheduling and embedding generation,
+alongside the cross-cutting `infrastructure` and `shared` packages. There are deliberately no
 `domain`/`application`/`adapter` packages.
 
 ```
@@ -23,12 +23,15 @@ docintelligence-master-venue-worker/
 │   │   ├── java/com/iqkv/docintelligence/mastervenueworker/
 │   │   │   ├── ingest/               # Vertical slice for master-venue ingestion
 │   │   │   │   ├── VenueIngestService.java / Impl.java   # Orchestration entry point
-│   │   │   │   ├── VenueIngestScheduler.java             # Scheduled execution
+│   │   │   │   ├── VenueIngestScheduler.java             # Scheduled poll + embedding top-up
+│   │   │   │   ├── VenueEmbeddingService.java            # Ollama embed + vector write/backfill
 │   │   │   │   ├── VenueDataProvider.java                # Upstream provider contract
 │   │   │   │   ├── TagvenueVenueDataProvider.java        # Provider implementation
+│   │   │   │   ├── TagvenueIngestConfig.java             # Provider/slice configuration
 │   │   │   │   ├── VenueAssetStorage.java                # Asset storage contract
 │   │   │   │   ├── MinioVenueAssetStorage.java           # MinIO-backed implementation
-│   │   │   │   ├── VenueIngestRecord.java / Asset.java   # Slice records
+│   │   │   │   ├── IngestStartupReporter.java / IngestRunSummary.java  # Run reporting
+│   │   │   │   ├── VenueIngestRecord.java / VenueIngestAsset.java / VenueRecordRef.java  # Slice records
 │   │   │   │   └── package-info.java                     # Slice Javadoc
 │   │   │   ├── infrastructure/       # Cross-cutting technical concerns, no business logic
 │   │   │   │   └── config/           # RabbitMQ, object storage, MyBatis, scheduling config
@@ -54,8 +57,8 @@ docintelligence-master-venue-worker/
 **Key structural concepts:**
 
 - **Feature slice**: `ingest` is a self-contained top-level package for the master-venue import
-  pipeline. Keep provider contracts, schedulers, storage ports and slice records together in that
-  slice instead of splitting them into DDD layers.
+  pipeline. Keep provider contracts, schedulers, storage ports, embedding generation and slice
+  records together in that slice instead of splitting them into DDD layers.
 - **Infrastructure**: Cross-cutting technical concerns (config, messaging, persistence) with no
   business logic.
 - **Shared kernel**: Utilities reused across packages.
@@ -256,9 +259,9 @@ Before making recommendations, agents should understand the project's technology
 - Database: PostgreSQL (production), H2 (test scope — smoke context-load only)
 - **MyBatis** with XML mappers — there is no Spring Data JPA / Hibernate in this project
 - `mybatis.configuration.map-underscore-to-camel-case=true` is enabled globally
-- Mapper interfaces annotated with `@Mapper`; XML mapper files in `src/main/resources/mappers/<context>/`
+- The venue models and mappers (`MasterVenue`, `MasterVenueMapper`, …) come from the shared `com.iqkv:docintelligence-venue` artifact: `MyBatisConfig` scans `com.iqkv.docintelligence.venue` and loads mappers from the jar (`classpath*:mappers/**/*.xml`). This service ships no mapper XML of its own.
 - **Shared schema** — this service owns no migrations. It reads and writes the PostgreSQL schema and tables maintained by `docintelligence-catalog-service`, which runs the Liquibase changelogs. There is no `db/changelog/` here and Liquibase is not on the classpath.
-- **Master catalog writer** — this service is the sole writer of `public.master_venue`, `public.master_venue_alias`, and `public.master_venue_external`. It never reads or writes a tenant schema; the master catalog tables are created once in `public` by `docintelligence-catalog-service`.
+- **Master catalog writer** — this service is the sole writer of `public.master_venue`, `public.master_venue_external`, and `public.master_venue_asset`. It never reads or writes a tenant schema; the master catalog tables are created once in `public` by `docintelligence-catalog-service`.
 
 **Security**
 
@@ -271,6 +274,11 @@ Before making recommendations, agents should understand the project's technology
 - Mockito for mocking
 - Testcontainers for integration tests (if configured)
 - ArchUnit for architecture validation
+
+**AI**
+
+- Spring AI Ollama starter (`spring-ai-starter-model-ollama`) — `VenueEmbeddingService` embeds each `master_venue` row at ingest time via `EmbeddingModel.embed(...)` (model `nomic-embed-text`), using the shared `VenueEmbeddingText` builder so the embedded text matches the catalog service, and writes the vector with `MasterVenueMapper#updateEmbedding`
+- Embedding failures are logged and swallowed; a scheduled `backfill()` pass re-embeds rows whose `embedding` column is still `NULL`
 
 **Build & Deployment**
 
