@@ -37,8 +37,9 @@ import org.springframework.stereotype.Service;
  * search and the column stays {@code NULL} until the next backfill pass.
  *
  * <p>The text fed to the model is a compact natural-language summary of the searchable
- * fields: name, address, city, and the raw metadata JSON document (which carries
- * venue_type, amenities, catering policy, capacity, and restrictions).
+ * fields: name, address, city, and the raw metadata JSON document. The document is a flat
+ * item list ({@code items} rows of {@code group}, {@code field} and {@code value}) whose
+ * {@code group} values cover venue type, capacity, catering, amenities and restrictions.
  */
 @Service
 class VenueEmbeddingService {
@@ -116,8 +117,9 @@ class VenueEmbeddingService {
 
   /**
    * Builds the text fed to the embedding model.
-   * Includes name, address, city, and raw metadata JSON so the model captures
-   * venue type, amenities, capacity, catering, and restrictions.
+   * Includes name, address, city, and raw metadata JSON — the flat item list of {@code group},
+   * {@code field} and {@code value} rows — so the model captures venue type, capacity, catering,
+   * amenities, and restrictions.
    */
   static String buildEmbeddingText(final MasterVenue venue) {
     final var sb = new StringBuilder();
