@@ -1,10 +1,10 @@
 # Document Intelligence Master Venue Worker 🏛️
 
-A batch companion worker on the iQ Key Value platform, backed by PostgreSQL, S3, and RabbitMQ.
+A scheduled ingest companion worker on the iQ Key Value platform, backed by PostgreSQL, S3, and RabbitMQ.
 
 ## Service Role
 
-The service is the **companion worker** (asynchronous sibling service) to the service that owns the control-plane API — not a sidecar. It exposes no inbound HTTP API beyond Actuator health; every trigger arrives as a message. It consumes import batches from the shared S3 bucket, applies them to the master catalog tables, and writes its audit report artefacts back to the bucket. Reads and writes go through MyBatis.
+The service is the **companion worker** (asynchronous sibling service) to the service that owns the control-plane API — not a sidecar. It exposes no inbound HTTP API beyond Actuator health; every cycle is driven by a scheduled poller, not an inbound request. Each cycle scans the shared ingest tree, loads every ready venue record into the master catalog tables (uploading its assets to object storage), and generates its embedding. Reads and writes go through MyBatis.
 
 It is expected to share its PostgreSQL instance and RabbitMQ broker with the service that hands it work, rather than owning them outright — a deliberate exception to the platform's self-contained-service rule, traded for simplicity inside a single product boundary. Schema migrations, including the master catalog DDL, stay with that service. What the two share is data, not a host: they run as separate deployables, with independent lifecycles and their own scaling axes.
 
@@ -12,9 +12,10 @@ It is expected to share its PostgreSQL instance and RabbitMQ broker with the ser
 
 This service provides:
 
-- **Object storage** — MinIO/S3 client for reading import batches and writing report artefacts
+- **Object storage** — MinIO/S3 client for writing the assets of each ingested venue
 - **Persistence** — data stored in PostgreSQL via MyBatis
-- **Messaging** — RabbitMQ connection, Jackson JSON message converter and listener retry policy, gated by `iqkv.messaging.rabbitmq.enabled`
+- **Embeddings** — Spring AI Ollama client; ingested venues are embedded at ingest time, with a backfill pass
+- **Messaging** — RabbitMQ connection, Jackson JSON message converter and listener retry policy, gated by `iqkv.messaging.rabbitmq.enabled` (config present, no consumers wired yet)
 
 ## Quick Links
 
@@ -27,6 +28,7 @@ This service provides:
 - Java 25 / Spring Boot (latest via parent POM)
 - MyBatis 3.x (no JPA) + PostgreSQL 17
 - MinIO / S3-compatible object storage
+- Spring AI Ollama starter — `nomic-embed-text` embeddings
 - RabbitMQ for async messaging
 - Micrometer + Prometheus
 - Spring Web — Actuator endpoints only
@@ -129,8 +131,8 @@ docker compose -f compose.container.yaml up -d
 
 ```
 src/main/java/com/iqkv/docintelligence/mastervenueworker/
+├── ingest/           # Ingest slice: poller, loader, embedding, venue providers/storage
 ├── infrastructure/   # Technical concerns: Spring config, RabbitMQ, MyBatis, object storage
-├── mastervenue/      # Master catalog model and MyBatis mapper
 ├── shared/           # Common utilities, value objects
 └── MasterVenueWorkerApplication.java
 ```
@@ -147,9 +149,11 @@ Please read our [Contributing Guidelines](.github/CONTRIBUTING.md) and [Code of 
 
 ## 🧩 Architecture
 
-- **Object storage**: MinIO/S3 client configured via `iqkv.objectstorage.*` (`OBJECTSTORAGE_ENDPOINT`, `OBJECTSTORAGE_ACCESS_KEY`, `OBJECTSTORAGE_SECRET_KEY`, `OBJECTSTORAGE_BUCKET_NAME`)
+- **Object storage**: MinIO/S3 client configured via `iqkv.objectstorage.*` (`OBJECTSTORAGE_ENDPOINT`, `OBJECTSTORAGE_ACCESS_KEY`, `OBJECTSTORAGE_SECRET_KEY`, `OBJECTSTORAGE_BUCKET_NAME`); writes each ingested venue's assets to the shared bucket
 - **Persistence**: MyBatis with XML mappers + PostgreSQL
-- **Messaging**: RabbitMQ connection, Jackson JSON message converter and listener retry policy; `iqkv.messaging.rabbitmq.enabled` toggle — disabled in base profile, enabled per environment
+- **Embeddings**: Spring AI Ollama (`nomic-embed-text`); each ingested venue is embedded at ingest time, with a backfill pass over rows whose `embedding` column is still `NULL`
+- **Ingest pipeline**: a scheduled poller scans the shared ingest tree, loads each record folder into the master catalog and embeds it — providers are toggled per source with `iqkv.ingest.source.<key>.enabled`
+- **Messaging**: RabbitMQ connection, Jackson JSON message converter and listener retry policy; `iqkv.messaging.rabbitmq.enabled` toggle — config present, no consumers bound yet
 - **Web**: Spring Web is present only to serve Actuator HTTP endpoints (management port 8081)
 - **Observability**: Micrometer + Prometheus; structured JSON logging with Logstash encoder; health probes for Kubernetes readiness/liveness
 - **Quality Tools**: Checkstyle, JaCoCo (60% gate), ArchUnit, commit convention enforcement

@@ -1,14 +1,16 @@
 # Document Intelligence Master Venue Worker 🏛️
 
-Master venue catalog loader on the iQ Key Value platform. A deterministic, LLM-free batch worker backed by PostgreSQL, S3, and RabbitMQ.
+Master venue catalog loader on the iQ Key Value platform. A scheduled ingest worker — it loads scraped venue records into the master catalog and generates their embeddings — backed by PostgreSQL, S3, and RabbitMQ.
 
 ## Service Role
 
-This is the batch half of the master catalog pipeline — the **companion worker** (asynchronous sibling service) to `docintelligence-catalog-service`, not a sidecar. It exposes no inbound HTTP API beyond Actuator health — every trigger arrives as a message.
+This is the batch half of the master catalog pipeline — the **companion worker** (asynchronous sibling service) to `docintelligence-catalog-service`, not a sidecar. It exposes no inbound HTTP API beyond Actuator health; every cycle is driven by a scheduled poller, not an inbound request.
 
-1. **Dry-run** — on `admin.master-catalog.import.dry-run`, read the scraper's import batch from S3 and emit a CSV audit report. Every row carries the recommended action (`INSERT` / `MERGE #id` / `SKIP`) together with name similarity, geo distance, and the candidate list.
-2. **Apply** — once an admin has reviewed and re-uploaded the annotated CSV, `admin.master-catalog.import.apply` applies exactly the reviewed actions. Nothing is auto-applied; the worker makes no autonomous deduplication decisions.
-3. **Write** — rows land in `public.master_venue`, `public.master_venue_alias`, and `public.master_venue_external`. Deduplication and alias normalisation are deterministic (`pg_trgm` similarity plus PostGIS distance); no LLM is involved anywhere in the path.
+1. **Poll** — on a fixed delay (`iqkv.ingest.poll-interval`, default 30 minutes) the scheduler scans the ingest tree at `iqkv.ingest.dir` — a volume shared with the scraper, holding one record folder per venue (`venue.json` plus an `assets/` folder).
+2. **Load** — each ready record is upserted into the master catalog: the venue row, its external identity, and its assets, uploaded to MinIO. The scraped folder is removed once everything is written; a record that fails stays on disk and is retried on the next cycle.
+3. **Embed** — each ingested venue is embedded at ingest time via Ollama (`nomic-embed-text`) and the vector persisted through `MasterVenueMapper#updateEmbedding`. A backfill pass re-embeds any rows whose `embedding` column is still `NULL`.
+
+Providers are enabled per source via `iqkv.ingest.source.<key>.enabled` (e.g. `tagvenue`). Embedding failures are logged and swallowed — the venue stays searchable by keyword and is picked up by the next backfill.
 
 The worker never reads or writes a tenant schema, and it never runs migrations.
 
@@ -16,7 +18,7 @@ The worker never reads or writes a tenant schema, and it never runs migrations.
 
 The worker deliberately shares the PostgreSQL instance and the RabbitMQ broker with the rest of the product, and reads its input from the same S3 bucket the scrapers write to. This is a conscious exception to the platform's self-contained-service rule, traded for simplicity inside a single product boundary.
 
-DDL for the master catalog tables stays with `docintelligence-catalog-service` (its `system/master.xml` changelog); this worker is only the write owner of those rows. What the two share is data, not a host: they run as separate deployables with independent lifecycles — the catalog service scales on API traffic, this worker on import batches. That is what makes it a **companion service** rather than a sidecar.
+DDL for the master catalog tables stays with `docintelligence-catalog-service` (its `system/master.xml` changelog); this worker is only the write owner of those rows. What the two share is data, not a host: they run as separate deployables with independent lifecycles — the catalog service scales on API traffic, this worker on ingest cycles. That is what makes it a **companion service** rather than a sidecar.
 
 ## About
 
@@ -27,8 +29,9 @@ This service provides:
 - **Docker Compose** — `compose.base.yaml` with PostgreSQL, RabbitMQ, MinIO, DbGate, Prometheus, and Grafana; `compose.container.yaml` for the full runtime stack including the service container
 - **Dockerfile** — multi-stage build with layered JAR extraction, non-root `appuser`, and JVM tuning
 - **Database Initialization** — `docker/postgres/init-catalog.sql` for automated schema and extension setup
-- **Messaging** — RabbitMQ connection, Jackson JSON message converter and listener retry policy, gated by `iqkv.messaging.rabbitmq.enabled`
-- **Object storage** — MinIO/S3 client for reading import batches and writing report artefacts
+- **Messaging** — RabbitMQ connection, Jackson JSON message converter and listener retry policy, gated by `iqkv.messaging.rabbitmq.enabled` (config present, no consumers wired yet)
+- **Object storage** — MinIO/S3 client (`catalog-assets` bucket) for writing the assets of each ingested venue
+- **Embeddings** — Spring AI Ollama client; venues are embedded with `nomic-embed-text` at ingest time, with a backfill pass for `NULL` rows
 - **Observability** — Micrometer + Prometheus + structured JSON logging (Logstash encoder); Actuator HTTP endpoints (the only use of Spring Web)
 - **Quality tools** — Checkstyle, JaCoCo, ArchUnit, Husky git hooks, commitlint
 
@@ -44,6 +47,7 @@ This service provides:
 - MyBatis 3.x (no JPA) + PostgreSQL 17 (pg_trgm, PostGIS)
 - `com.iqkv:docintelligence-venue` — shared venue model and mapper
 - MinIO / S3-compatible object storage
+- Spring AI Ollama starter — `nomic-embed-text` embeddings
 - RabbitMQ for async messaging
 - Micrometer + Prometheus
 - Spring Web — Actuator endpoints only
@@ -100,7 +104,7 @@ docker compose up -d
 | `MESSAGING_ENABLED`              | `false`                 | RabbitMQ listener toggle                |
 | `SPRING_PROFILES_ACTIVE`         | `local`                 | Active Spring profile                   |
 
-> Copy `.env.example` to `.env.local` / `.env.uat` / `.env.prd` and fill in values per environment. Import batches live under the `docintelligence/master-catalog/imports/{importId}/` prefix of the shared bucket.
+> Copy `.env.example` to `.env.local` / `.env.uat` / `.env.prd` and fill in values per environment. The ingest tree (`INGEST_DIR`) is a volume shared with the scraper — one record folder per venue, each holding a `venue.json` and an `assets/` folder. Assets are copied into the `catalog-assets` bucket on load.
 
 ## Maven Commands
 
@@ -148,6 +152,7 @@ docker compose -f compose.container.yaml up -d
 │   ├── prometheus/     # Prometheus configuration
 │   └── grafana/        # Grafana dashboards and datasources
 ├── src/main/java/com/iqkv/docintelligence/mastervenueworker/
+│   ├── ingest/         # Ingest slice: poller, loader, embedding, venue providers/storage
 │   ├── infrastructure/ # Spring config, MyBatis, RabbitMQ, object storage
 │   └── shared/         # Common utilities, value objects
 ```
@@ -182,9 +187,10 @@ Please read our [Contributing Guidelines](.github/CONTRIBUTING.md) and [Code of 
 ## 🧩 Architecture
 
 - **Persistence**: MyBatis with XML mappers + PostgreSQL; writes `public.master_venue*` only, never a tenant schema
-- **Import pipeline**: `admin.master-catalog.import.dry-run` / `admin.master-catalog.import.apply` events; nothing is applied without a reviewed batch
-- **Messaging**: RabbitMQ connection, Jackson JSON message converter and listener retry policy; `iqkv.messaging.rabbitmq.enabled` toggle — disabled in base, enabled per profile
-- **Object storage**: MinIO/S3 client reading `docintelligence/master-catalog/imports/{importId}/`
+- **Ingest pipeline**: a scheduled poller (`iqkv.ingest.poll-interval`) scans `iqkv.ingest.dir`, loads each record folder (`venue.json` + `assets/`) into the master catalog, and embeds it via Ollama — providers are toggled per source with `iqkv.ingest.source.<key>.enabled`
+- **Embeddings**: Spring AI Ollama (`nomic-embed-text`); each ingested venue is embedded and stored through `MasterVenueMapper#updateEmbedding`, with a backfill pass for `NULL` rows
+- **Messaging**: RabbitMQ connection, Jackson JSON message converter and listener retry policy; `iqkv.messaging.rabbitmq.enabled` toggle — config present but no consumers bound yet
+- **Object storage**: MinIO/S3 client writing each venue's assets to the `catalog-assets` bucket
 - **Web**: Spring Web is present only to serve Actuator HTTP endpoints (management port 8081)
 - **Credential convention**: DB users follow `svc_{service}_dba`, RabbitMQ users follow `svc_{service}_rmq`
 - **Observability**: Micrometer + Prometheus; structured JSON logging with Logstash encoder; health probes for Kubernetes

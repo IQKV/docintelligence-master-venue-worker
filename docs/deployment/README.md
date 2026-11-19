@@ -128,8 +128,8 @@ drone secret add --repository IQKV/docintelligence-master-venue-worker --name IN
 The service connects to these external infrastructure components:
 
 - **PostgreSQL**: Master catalog persistence (shared instance; migrations are owned by `docintelligence-catalog-service`)
-- **RabbitMQ**: `admin.master-catalog.import.*` import events
-- **S3-compatible object storage**: master catalog import batches and report artefacts
+- **RabbitMQ**: broker connection configured, but no consumers are bound yet — ingest is driven by the scheduled poller
+- **S3-compatible object storage**: `catalog-assets` bucket holding the assets of each ingested venue
 
 #### Service Configuration
 
