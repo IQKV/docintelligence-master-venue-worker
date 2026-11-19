@@ -40,7 +40,8 @@ import org.springframework.stereotype.Service;
  * <p>The text fed to the model is a compact natural-language summary of the searchable
  * fields: name, address, city, and the raw metadata JSON document. The document is a flat
  * item list ({@code items} rows of {@code group}, {@code field} and {@code value}) whose
- * {@code group} values cover venue type, capacity, catering, amenities and restrictions.
+ * {@code group} values include profile, basic, venue type, capacity, catering, pricing and
+ * restrictions.
  */
 @Service
 class VenueEmbeddingService {

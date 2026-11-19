@@ -59,7 +59,15 @@ class TagvenueVenueDataProviderTest {
         "source_url": "https://www.tagvenue.com/venues/london/11896/the-last-talisman",
         "metadata": {
           "_schema_version": 1,
-          "items": [{ "group": "capacity", "field": "max_total", "value": 100 }]
+          "items": [
+            { "group": "profile", "field": "category", "value": "Restaurant" },
+            { "group": "basic", "field": "amenities", "value": "Wi-Fi" },
+            {
+              "group": "pricing",
+              "field": "price_lines",
+              "value": { "name": "Exclusive Venue Hire", "amount": 1000, "unit": "min. spend" }
+            }
+          ]
         },
         "confidence": 0.82,
         "scrape_run": { "at": "2026-10-29T08:15:30.000Z" }
@@ -127,7 +135,13 @@ class TagvenueVenueDataProviderTest {
     assertThat(ingest.city()).isEqualTo("London");
     assertThat(ingest.locationLat()).isEqualByComparingTo("51.5074");
     assertThat(ingest.locationLng()).isEqualByComparingTo("-0.1278");
-    assertThat(ingest.metadataJson()).contains("_schema_version");
+    assertThat(ingest.metadataJson())
+        .contains("\"group\":\"profile\"")
+        .contains("\"field\":\"category\"")
+        .contains("\"group\":\"basic\"")
+        .contains("\"field\":\"amenities\"")
+        .contains("\"field\":\"price_lines\"")
+        .contains("Exclusive Venue Hire");
     assertThat(ingest.confidence()).isEqualByComparingTo("0.82");
     assertThat(ingest.rawPayloadJson()).contains("The Last Talisman");
     assertThat(ingest.crawledAt()).isEqualTo(Instant.parse("2026-10-29T08:15:30Z"));

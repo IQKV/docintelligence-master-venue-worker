@@ -55,6 +55,13 @@ import org.springframework.beans.factory.ObjectProvider;
 class VenueIngestServiceImplTest {
 
   private static final String ASSET_FILE = "11896-the-last-talisman-venue.jpg";
+  private static final String METADATA_JSON = """
+      {"_schema_version":1,"items":[
+        {"group":"profile","field":"category","value":"Restaurant"},
+        {"group":"basic","field":"amenities","value":"Wi-Fi"},
+        {"group":"pricing","field":"price_lines","value":{"name":"Exclusive Venue Hire","amount":1000,"unit":"min. spend"}}
+      ]}
+      """;
 
   @Mock
   private ObjectProvider<VenueDataProvider> providers;
@@ -113,7 +120,7 @@ class VenueIngestServiceImplTest {
     assertThat(venueCaptor.getValue().getName()).isEqualTo("The Last Talisman");
     assertThat(venueCaptor.getValue().getCity()).isEqualTo("London");
     assertThat(venueCaptor.getValue().getLocationLat()).isEqualByComparingTo("51.5074");
-    assertThat(venueCaptor.getValue().getMetadata()).contains("_schema_version");
+    assertThat(venueCaptor.getValue().getMetadata()).isEqualTo(METADATA_JSON);
     assertThat(venueCaptor.getValue().getSource()).isEqualTo("web_scrape");
     assertThat(externalCaptor.getValue().getProvider()).isEqualTo("tagvenue");
     assertThat(externalCaptor.getValue().getProviderExternalId()).isEqualTo("tagvenue:venue:11896");
@@ -223,7 +230,7 @@ class VenueIngestServiceImplTest {
   private static VenueIngestRecord record(final Path file) {
     return new VenueIngestRecord(
         "tagvenue", "tagvenue:venue:11896", "web_scrape", "The Last Talisman", "1 Main Street, London",
-        "London", new BigDecimal("51.5074"), new BigDecimal("-0.1278"), "{\"_schema_version\":1}",
+        "London", new BigDecimal("51.5074"), new BigDecimal("-0.1278"), METADATA_JSON,
         new BigDecimal("0.82"), "{\"name\":\"The Last Talisman\"}", Instant.parse("2026-10-29T08:15:30Z"),
         List.of(new VenueIngestAsset(ASSET_FILE, file, "https://example.test/photo.jpg", 0)));
   }
